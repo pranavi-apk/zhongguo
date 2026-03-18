@@ -2,12 +2,20 @@ import { useState, useEffect } from 'react';
 import * as XLSX from 'xlsx';
 import './App.css';
 
+// iFLYTEK API credentials
+const APP_ID = 'ga8f3190';
+const API_KEY = 'd0e596d68d3bd4c89ec10293ceb68509';
+const API_SECRET = 'cfe3bd189aa401d2f18c6bf9ce3acce4';
+const WS_URL = 'ws://tts-api-sg.xf-yun.com/v2/tts';
+
 function App() {
   const [chapters, setChapters] = useState({});
   const [selectedChapter, setSelectedChapter] = useState(null);
   const [flippedCards, setFlippedCards] = useState({});
   const [practiceMode, setPracticeMode] = useState(false);
   const [mixedCards, setMixedCards] = useState([]);
+  const [audioCache, setAudioCache] = useState({});
+  const [playingId, setPlayingId] = useState(null);
 
   useEffect(() => {
     loadExcelData();
@@ -111,6 +119,119 @@ function App() {
     setFlippedCards({});
   };
 
+  const generateTTS = async (text) => {
+    try {
+      // Create authentication signature
+      const date = new Date().toUTCString();
+      const host = 'tts-api-sg.xf-yun.com';
+      
+      // Simple HMAC-SHA256 signature (simplified for browser)
+      const encoder = new TextEncoder();
+      const keyData = encoder.encode(API_SECRET);
+      const messageData = encoder.encode(`host: ${host}\ndate: ${date}\nGET /v2/tts HTTP/1.1`);
+      
+      const key = await crypto.subtle.importKey(
+        'raw',
+        keyData,
+        { name: 'HMAC', hash: 'SHA-256' },
+        false,
+        ['sign']
+      );
+      
+      const signature = await crypto.subtle.sign('HMAC', key, messageData);
+      const signatureBase64 = btoa(String.fromCharCode(...new Uint8Array(signature)));
+      
+      const authorization = `api_key="${API_KEY}", algorithm="hmac-sha256", headers="host date request-line", signature="${signatureBase64}"`;
+      
+      // Build WebSocket URL with parameters
+      const params = new URLSearchParams({
+        appid: APP_ID,
+        aue: 'lame',
+        auf: 'audio/L16;rate=16000',
+        vcne: 'xiaoyan',
+        tte: 'utf-8',
+        text: encodeURIComponent(text),
+        authorization: encodeURIComponent(authorization),
+        date: encodeURIComponent(date)
+      });
+      
+      const wsUrl = `${WS_URL}?${params.toString()}`;
+      
+      return new Promise((resolve, reject) => {
+        const ws = new WebSocket(wsUrl);
+        const chunks = [];
+        
+        ws.onopen = () => {
+          console.log('TTS WebSocket connected');
+        };
+        
+        ws.onmessage = (event) => {
+          const data = JSON.parse(event.data);
+          if (data.audio) {
+            chunks.push(data.audio);
+          }
+          if (data.status === 2) {
+            ws.close();
+            const audioData = 'data:audio/mp3;base64,' + chunks.join('');
+            resolve(audioData);
+          }
+        };
+        
+        ws.onerror = (error) => {
+          console.error('TTS WebSocket error:', error);
+          reject(error);
+        };
+        
+        ws.onclose = () => {
+          if (chunks.length > 0) {
+            const audioData = 'data:audio/mp3;base64,' + chunks.join('');
+            resolve(audioData);
+          }
+        };
+      });
+    } catch (error) {
+      console.error('TTS generation failed:', error);
+      throw error;
+    }
+  };
+
+  const playAudio = async (cardId, character) => {
+    if (playingId === cardId) {
+      // Stop current playback
+      const existingAudio = document.getElementById(`audio-${cardId}`);
+      if (existingAudio) {
+        existingAudio.pause();
+        existingAudio.currentTime = 0;
+      }
+      setPlayingId(null);
+      return;
+    }
+    
+    try {
+      // Check cache first
+      if (audioCache[character]) {
+        const audio = new Audio(audioCache[character]);
+        audio.id = `audio-${cardId}`;
+        audio.play();
+        setPlayingId(cardId);
+        audio.onended = () => setPlayingId(null);
+        return;
+      }
+      
+      // Generate new audio
+      const audioData = await generateTTS(character);
+      setAudioCache(prev => ({ ...prev, [character]: audioData }));
+      
+      const audio = new Audio(audioData);
+      audio.id = `audio-${cardId}`;
+      audio.play();
+      setPlayingId(cardId);
+      audio.onended = () => setPlayingId(null);
+    } catch (error) {
+      console.error('Audio playback failed:', error);
+    }
+  };
+
   const cardsToDisplay = practiceMode ? mixedCards : (selectedChapter ? chapters[selectedChapter] : []);
 
   if (!selectedChapter && !practiceMode) {
@@ -173,6 +294,15 @@ function App() {
             <div className="flashcard-inner">
               <div className="flashcard-front">
                 <div className="character">{card.character}</div>
+                <button 
+                  className="audio-btn"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    playAudio(card.id, card.character);
+                  }}
+                >
+                  {playingId === card.id ? '🔊' : '🔈'}
+                </button>
                 <div className="hint">Click to flip</div>
               </div>
               <div className="flashcard-back">
