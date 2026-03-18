@@ -121,14 +121,17 @@ function App() {
 
   const generateTTS = async (text) => {
     try {
-      // Create authentication signature
+      // Use iFLYTEK's simpler authentication method for WebSocket
       const date = new Date().toUTCString();
       const host = 'tts-api-sg.xf-yun.com';
       
-      // Simple HMAC-SHA256 signature (simplified for browser)
+      // Build the signature string exactly as iFLYTEK expects
+      const signatureOrigin = `host: ${host}\ndate: ${date}\nGET /v2/tts HTTP/1.1`;
+      
+      // HMAC-SHA256 signature
       const encoder = new TextEncoder();
       const keyData = encoder.encode(API_SECRET);
-      const messageData = encoder.encode(`host: ${host}\ndate: ${date}\nGET /v2/tts HTTP/1.1`);
+      const messageData = encoder.encode(signatureOrigin);
       
       const key = await crypto.subtle.importKey(
         'raw',
@@ -141,56 +144,79 @@ function App() {
       const signature = await crypto.subtle.sign('HMAC', key, messageData);
       const signatureBase64 = btoa(String.fromCharCode(...new Uint8Array(signature)));
       
+      // Authorization header format
       const authorization = `api_key="${API_KEY}", algorithm="hmac-sha256", headers="host date request-line", signature="${signatureBase64}"`;
       
-      // Build WebSocket URL with parameters
-      const params = new URLSearchParams({
-        appid: APP_ID,
-        aue: 'lame',
-        auf: 'audio/L16;rate=16000',
-        vcne: 'xiaoyan',
-        tte: 'utf-8',
-        text: encodeURIComponent(text),
-        authorization: encodeURIComponent(authorization),
-        date: encodeURIComponent(date)
-      });
+      // Build WebSocket URL - don't encode authorization and date twice
+      const params = new URLSearchParams();
+      params.append('appid', APP_ID);
+      params.append('aue', 'lame');
+      params.append('auf', 'audio/L16;rate=16000');
+      params.append('vcne', 'xiaoyan');
+      params.append('tte', 'utf-8');
+      params.append('text', btoa(unescape(encodeURIComponent(text)))); // Base64 encode text
+      params.append('authorization', btoa(authorization)); // Base64 encode authorization
+      params.append('date', date);
       
       const wsUrl = `${WS_URL}?${params.toString()}`;
+      
+      console.log('Connecting to TTS WebSocket...');
       
       return new Promise((resolve, reject) => {
         const ws = new WebSocket(wsUrl);
         const chunks = [];
+        let hasError = false;
         
         ws.onopen = () => {
-          console.log('TTS WebSocket connected');
+          console.log('✓ TTS WebSocket connected successfully');
         };
         
         ws.onmessage = (event) => {
-          const data = JSON.parse(event.data);
-          if (data.audio) {
-            chunks.push(data.audio);
-          }
-          if (data.status === 2) {
-            ws.close();
-            const audioData = 'data:audio/mp3;base64,' + chunks.join('');
-            resolve(audioData);
+          try {
+            const data = JSON.parse(event.data);
+            console.log('TTS response:', data);
+            
+            if (data.code !== 0 && data.code !== undefined) {
+              console.error('TTS API error:', data.message || data.code);
+              hasError = true;
+              ws.close();
+              reject(new Error(data.message || `Error code: ${data.code}`));
+              return;
+            }
+            
+            if (data.audio) {
+              chunks.push(data.audio);
+            }
+            
+            if (data.status === 2) {
+              ws.close();
+              if (!hasError && chunks.length > 0) {
+                const audioData = 'data:audio/mp3;base64,' + chunks.join('');
+                console.log('✓ Audio generated successfully');
+                resolve(audioData);
+              }
+            }
+          } catch (e) {
+            console.error('Error parsing TTS response:', e);
           }
         };
         
         ws.onerror = (error) => {
-          console.error('TTS WebSocket error:', error);
-          reject(error);
+          console.error('✗ TTS WebSocket error:', error);
+          if (!hasError) {
+            reject(error);
+          }
         };
         
         ws.onclose = () => {
-          if (chunks.length > 0) {
+          if (!hasError && chunks.length > 0) {
             const audioData = 'data:audio/mp3;base64,' + chunks.join('');
             resolve(audioData);
           }
         };
       });
     } catch (error) {
-      console.error('TTS generation failed:', error);
+      console.error('✗ TTS generation failed:', error);
       throw error;
     }
   };
