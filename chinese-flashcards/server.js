@@ -121,8 +121,8 @@ app.post('/api/tts', async (req, res) => {
   }
 });
 
-// For any other request, send back the index.html from the build folder
-app.get('*', (req, res) => {
+// For any other request, send back the index.html from the build folder (Express 5 wildcard syntax)
+app.get('/{*path}', (req, res) => {
   res.sendFile(path.join(__dirname, 'dist', 'index.html'));
 });
 
