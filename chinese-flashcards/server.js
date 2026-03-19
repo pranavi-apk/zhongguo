@@ -10,7 +10,12 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
-const PORT = process.env.PORT || 8080;
+const PORT = parseInt(process.env.PORT || '8080', 10);
+
+// Basic health check for Cloud Run
+app.get('/health', (req, res) => {
+  res.status(200).send('OK');
+});
 
 // Catch all unhandled errors for Cloud Run debugging
 process.on('uncaughtException', (err) => {
@@ -122,8 +127,8 @@ app.get('*', (req, res) => {
 });
 
 app.listen(PORT, '0.0.0.0', () => {
-  console.log(`✓ Flashcards Server is UP and running!`);
-  console.log(`✓ Port: ${PORT}`);
-  console.log(`✓ Mode: ${process.env.NODE_ENV || 'development'}`);
-  console.log(`✓ Serving static files from: ${path.join(__dirname, 'dist')}`);
+  console.log(`\n\n🚀 SERVER STARTING UP...`);
+  console.log(`✓ Bound to 0.0.0.0:${PORT}`);
+  console.log(`✓ NODE_ENV: ${process.env.NODE_ENV}`);
+  console.log(`✓ Serving static from: ${path.join(__dirname, 'dist')}\n\n`);
 });
