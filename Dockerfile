@@ -15,17 +15,13 @@ FROM node:20-slim
 ENV NODE_ENV=production
 WORKDIR /app
 
-# Copy built assets and backend
+# Copy everything from build stage
 COPY --from=build /app/dist ./dist
 COPY --from=build /app/server.js ./
 COPY --from=build /app/package*.json ./
 
-# Install production dependencies
+# Install only production dependencies
 RUN npm install --omit=dev
-
-# Change ownership to a non-root user for security
-RUN chown -R node:node /app
-USER node
 
 # Standard Cloud Run port
 EXPOSE 8080
