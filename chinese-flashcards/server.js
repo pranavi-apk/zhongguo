@@ -112,6 +112,9 @@ app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'dist', 'index.html'));
 });
 
-app.listen(PORT, () => {
-  console.log(`🎵 Flashcards Server running on port ${PORT}`);
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`✓ Flashcards Server is UP and running!`);
+  console.log(`✓ Port: ${PORT}`);
+  console.log(`✓ Mode: ${process.env.NODE_ENV || 'development'}`);
+  console.log(`✓ Serving static files from: ${path.join(__dirname, 'dist')}`);
 });
