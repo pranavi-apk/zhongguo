@@ -1,0 +1,10 @@
+node_modules
+dist
+read-excel.js
+test-tts.js
+.git
+.gitignore
+.dockerignore
+Dockerfile
+Chinese Characters Recognition and Reading Chart (with Pinyin and English).xlsx
+migrate-to-json.js

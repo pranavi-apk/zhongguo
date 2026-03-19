@@ -3,17 +3,25 @@ import cors from 'cors';
 import crypto from 'crypto';
 import { WebSocket } from 'ws';
 
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
 const app = express();
-const PORT = 3001;
+const PORT = process.env.PORT || 3001;
 
 // iFLYTEK credentials
 const APP_ID = 'ga8f3190';
 const API_KEY = 'd0e596d68d3bd4c89ec10293ceb68509';
 const API_SECRET = 'cfe3bd189aa401d2f18c6bf9ce3acce4';
-const WS_URL = 'ws://tts-api-sg.xf-yun.com/v2/tts';
 
 app.use(cors());
 app.use(express.json());
+
+// Serve static files from the Vite build directory
+app.use(express.static(path.join(__dirname, 'dist')));
 
 app.post('/api/tts', async (req, res) => {
   const { text } = req.body;
@@ -35,18 +43,10 @@ app.post('/api/tts', async (req, res) => {
     
     const authorization = `api_key="${API_KEY}", algorithm="hmac-sha256", headers="host date request-line", signature="${signature}"`;
     
-    // Build URL
-    const params = new URLSearchParams();
-    params.append('appid', APP_ID);
-    params.append('aue', 'lame');
-    params.append('auf', 'audio/L16;rate=16000');
-    params.append('vcne', 'xiaoyan');
-    params.append('tte', 'utf-8');
-    params.append('text', Buffer.from(text).toString('base64'));
-    params.append('authorization', Buffer.from(authorization).toString('base64'));
-    params.append('date', date);
+    const authorizationBase64 = Buffer.from(authorization).toString('base64');
     
-    const wsUrl = `${WS_URL}?${params.toString()}`;
+    // Build URL according to standard iFlytek WebSocket v2 API
+    const wsUrl = `wss://${host}/v2/tts?authorization=${authorizationBase64}&date=${encodeURIComponent(date)}&host=${host}`;
     
     // Connect to iFLYTEK WebSocket
     const ws = new WebSocket(wsUrl);
@@ -54,6 +54,13 @@ app.post('/api/tts', async (req, res) => {
     
     ws.on('open', () => {
       console.log('✓ Connected to iFLYTEK TTS');
+      const textBase64 = Buffer.from(text).toString('base64');
+      const payload = {
+        common: { app_id: APP_ID },
+        business: { aue: "lame", sfl: 1, auf: "audio/L16;rate=16000", vcn: "xiaoyan", tte: "utf8", speed: 30 },
+        data: { status: 2, text: textBase64 }
+      };
+      ws.send(JSON.stringify(payload));
     });
     
     ws.on('message', (data) => {
@@ -66,14 +73,13 @@ app.post('/api/tts', async (req, res) => {
           return res.status(500).json({ error: response.message || `Error ${response.code}` });
         }
         
-        if (response.audio) {
-          chunks.push(response.audio);
+        if (response.data && response.data.audio) {
+          chunks.push(response.data.audio);
         }
         
-        if (response.status === 2) {
+        if (response.data && response.data.status === 2) {
           ws.close();
-          const audioData = 'data:audio/mp3;base64,' + chunks.join('');
-          console.log('✓ Audio generated successfully');
+          const audioData = 'data:audio/mpeg;base64,' + chunks.join('');
           res.json({ audio: audioData });
         }
       } catch (e) {
@@ -90,7 +96,7 @@ app.post('/api/tts', async (req, res) => {
     
     ws.on('close', () => {
       if (chunks.length > 0 && !res.headersSent) {
-        const audioData = 'data:audio/mp3;base64,' + chunks.join('');
+        const audioData = 'data:audio/mpeg;base64,' + chunks.join('');
         res.json({ audio: audioData });
       }
     });
@@ -101,6 +107,11 @@ app.post('/api/tts', async (req, res) => {
   }
 });
 
+// For any other request, send back the index.html from the build folder
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, 'dist', 'index.html'));
+});
+
 app.listen(PORT, () => {
-  console.log(`🎵 TTS Proxy Server running on http://localhost:${PORT}`);
+  console.log(`🎵 Flashcards Server running on port ${PORT}`);
 });

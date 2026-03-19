@@ -1,12 +1,11 @@
 import { useState, useEffect } from 'react';
-import * as XLSX from 'xlsx';
 import './App.css';
 
 // iFLYTEK API credentials
 const APP_ID = 'ga8f3190';
 const API_KEY = 'd0e596d68d3bd4c89ec10293ceb68509';
 const API_SECRET = 'cfe3bd189aa401d2f18c6bf9ce3acce4';
-const WS_URL = 'ws://tts-api-sg.xf-yun.com/v2/tts';
+
 
 function App() {
   const [chapters, setChapters] = useState({});
@@ -18,80 +17,27 @@ function App() {
   const [playingId, setPlayingId] = useState(null);
 
   useEffect(() => {
-    loadExcelData();
+    loadData();
   }, []);
 
-  const loadExcelData = async () => {
+  const loadData = async () => {
     try {
-      const data = await fetch('/Chinese Characters Recognition and Reading Chart (with Pinyin and English).xlsx');
-      const arrayBuffer = await data.arrayBuffer();
-      const workbook = XLSX.read(arrayBuffer, { type: 'array' });
+      const response = await fetch('/data/chapters.json');
+      const index = await response.json();
       
-      const sheetName = workbook.SheetNames[0];
-      const worksheet = workbook.Sheets[sheetName];
-      const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+      const chapterDataMap = {};
       
-      parseChapterData(jsonData);
+      // Load all chapter files in parallel
+      await Promise.all(index.map(async (chapter) => {
+        const charResponse = await fetch(`/data/${chapter.file}`);
+        const characters = await charResponse.json();
+        chapterDataMap[chapter.name] = characters;
+      }));
+      
+      setChapters(chapterDataMap);
     } catch (error) {
-      console.error('Error loading Excel file:', error);
+      console.error('Error loading JSON data:', error);
     }
-  };
-
-  const parseChapterData = (data) => {
-    const chapterMap = {};
-    const chapterHeaders = [];
-    
-    // Row 2 contains chapter headers
-    const headerRow = data[1];
-    let currentChapter = null;
-    let chapterStartCol = 0;
-    
-    // Identify chapter columns
-    for (let col = 0; col < headerRow.length; col++) {
-      const cell = headerRow[col];
-      if (cell && typeof cell === 'string') {
-        if (currentChapter) {
-          chapterHeaders.push({ name: currentChapter, start: chapterStartCol, end: col - 1 });
-        }
-        currentChapter = cell;
-        chapterStartCol = col;
-      }
-    }
-    
-    if (currentChapter) {
-      chapterHeaders.push({ name: currentChapter, start: chapterStartCol, end: headerRow.length - 1 });
-    }
-    
-    // Extract characters for each chapter (starting from row 3)
-    chapterHeaders.forEach(chapter => {
-      const chars = [];
-      
-      for (let row = 2; row < data.length; row++) {
-        const rowData = data[row];
-        if (!rowData) continue;
-        
-        for (let col = chapter.start; col <= chapter.end; col += 4) {
-          const character = rowData[col];
-          const pinyin = rowData[col + 1];
-          const english = rowData[col + 2];
-          
-          if (character && typeof character === 'string') {
-            chars.push({
-              id: `${chapter.name}-${row}-${col}`,
-              character,
-              pinyin: pinyin || '',
-              english: english || ''
-            });
-          }
-        }
-      }
-      
-      if (chars.length > 0) {
-        chapterMap[chapter.name] = chars;
-      }
-    });
-    
-    setChapters(chapterMap);
   };
 
   const handleCardFlip = (cardId) => {
@@ -124,7 +70,7 @@ function App() {
       console.log('Generating TTS for:', text);
       
       // Call our backend proxy
-      const response = await fetch('http://localhost:3001/api/tts', {
+      const response = await fetch('/api/tts', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -160,7 +106,7 @@ function App() {
     }
     
     try {
-      // Check cache first
+      // Check cache first (cache stores Blob URLs)
       if (audioCache[character]) {
         const audio = new Audio(audioCache[character]);
         audio.id = `audio-${cardId}`;
@@ -172,9 +118,18 @@ function App() {
       
       // Generate new audio
       const audioData = await generateTTS(character);
-      setAudioCache(prev => ({ ...prev, [character]: audioData }));
+
+      // Convert base64 data URI → Blob URL (browsers play Blob URLs reliably)
+      const base64 = audioData.split(',')[1];
+      const binary = atob(base64);
+      const bytes = new Uint8Array(binary.length);
+      for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+      const blob = new Blob([bytes], { type: 'audio/mpeg' });
+      const blobUrl = URL.createObjectURL(blob);
+
+      setAudioCache(prev => ({ ...prev, [character]: blobUrl }));
       
-      const audio = new Audio(audioData);
+      const audio = new Audio(blobUrl);
       audio.id = `audio-${cardId}`;
       audio.play();
       setPlayingId(cardId);
@@ -190,13 +145,15 @@ function App() {
     return (
       <div className="app">
         <header className="header">
-          <h1>🇨🇳 Chinese Flashcards</h1>
-          <p className="subtitle">Master Chinese characters by chapter</p>
+          <div className="header-center">
+            <h1>中文闪卡</h1>
+            <p className="subtitle">Chinese Flashcards — select a chapter to begin</p>
+          </div>
         </header>
         
         <main className="main-content">
           <button className="practice-btn" onClick={startPracticeMode}>
-            🎯 Mixed Practice Mode
+            Mixed Practice
           </button>
           
           <div className="chapter-grid">
@@ -206,7 +163,7 @@ function App() {
                 className="chapter-folder"
                 onClick={() => setSelectedChapter(chapterName)}
               >
-                <div className="folder-icon">📁</div>
+                <span className="folder-icon">�</span>
                 <h3>{chapterName}</h3>
                 <p className="char-count">{chars.length} characters</p>
               </div>
@@ -223,12 +180,12 @@ function App() {
         <button className="back-btn" onClick={practiceMode ? exitPracticeMode : () => setSelectedChapter(null)}>
           ← Back
         </button>
-        <h1>{practiceMode ? '🎯 Mixed Practice' : selectedChapter}</h1>
-        <div className="header-actions">
-          <button className="reset-btn" onClick={resetCards}>
-            🔄 Reset Cards
-          </button>
+        <div className="header-center">
+          <h1>{practiceMode ? 'Mixed Practice' : selectedChapter}</h1>
         </div>
+        <button className="reset-btn" onClick={resetCards}>
+          Reset
+        </button>
       </header>
       
       <div className="stats-bar">
@@ -255,7 +212,6 @@ function App() {
                 >
                   {playingId === card.id ? '🔊' : '🔈'}
                 </button>
-                <div className="hint">Click to flip</div>
               </div>
               <div className="flashcard-back">
                 <div className="pinyin">{card.pinyin}</div>

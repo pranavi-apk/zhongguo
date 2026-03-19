@@ -1,0 +1,13 @@
+# Ignore main workspace node_modules
+node_modules
+.qoder
+.git
+.gitignore
+
+# Ignore subfolder node_modules and built assets
+chinese-flashcards/node_modules
+chinese-flashcards/dist
+chinese-flashcards/read-excel.js
+chinese-flashcards/test-tts.js
+chinese-flashcards/migrate-to-json.js
+Chinese Characters Recognition and Reading Chart (with Pinyin and English).xlsx

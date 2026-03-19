@@ -1,0 +1,74 @@
+[
+  {
+    "id": "Uint1-D1-2-8",
+    "character": "请",
+    "pinyin": "qǐng",
+    "english": "please;to treat or to invite"
+  },
+  {
+    "id": "Uint1-D1-3-8",
+    "character": "请问",
+    "pinyin": "qǐngwèn",
+    "english": "excuse me;may I ask"
+  },
+  {
+    "id": "Uint1-D1-4-8",
+    "character": "叫",
+    "pinyin": "jiào",
+    "english": "to be called"
+  },
+  {
+    "id": "Uint1-D1-5-8",
+    "character": "什么",
+    "pinyin": "shénme",
+    "english": "what"
+  },
+  {
+    "id": "Uint1-D1-6-8",
+    "character": "我",
+    "pinyin": "wǒ",
+    "english": "I;me"
+  },
+  {
+    "id": "Uint1-D1-7-8",
+    "character": "你",
+    "pinyin": "nǐ",
+    "english": "you"
+  },
+  {
+    "id": "Uint1-D1-8-8",
+    "character": "好",
+    "pinyin": "hǎo",
+    "english": "fine;good;nice;OK;it's settled"
+  },
+  {
+    "id": "Uint1-D1-9-8",
+    "character": "你好",
+    "pinyin": "nǐ hǎo",
+    "english": "hello"
+  },
+  {
+    "id": "Uint1-D1-10-8",
+    "character": "呢",
+    "pinyin": "ne",
+    "english": "particle used to ask questions"
+  },
+  {
+    "id": "Uint1-D1-11-8",
+    "character": "名字",
+    "pinyin": "míngzi",
+    "english": "name"
+  },
+  {
+    "id": "Uint1-D1-12-8",
+    "character": "先生",
+    "pinyin": "xiánsheng",
+    "english": "Mr.; husband; teacher"
+  },
+  {
+    "id": "Uint1-D1-13-8",
+    "character": "小姐",
+    "pinyin": "xiǎojiě",
+    "english": "Miss; young lady"
+  }
+]

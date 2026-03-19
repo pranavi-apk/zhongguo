@@ -1,0 +1,134 @@
+[
+  {
+    "id": "Pre-unit-2-1",
+    "character": "一",
+    "pinyin": "yī",
+    "english": "one"
+  },
+  {
+    "id": "Pre-unit-3-1",
+    "character": "二",
+    "pinyin": "èr",
+    "english": "two"
+  },
+  {
+    "id": "Pre-unit-4-1",
+    "character": "三",
+    "pinyin": "sān",
+    "english": "three"
+  },
+  {
+    "id": "Pre-unit-5-1",
+    "character": "四",
+    "pinyin": "sì",
+    "english": "four"
+  },
+  {
+    "id": "Pre-unit-6-1",
+    "character": "五",
+    "pinyin": "wǔ",
+    "english": "five"
+  },
+  {
+    "id": "Pre-unit-7-1",
+    "character": "六",
+    "pinyin": "liù",
+    "english": "six"
+  },
+  {
+    "id": "Pre-unit-8-1",
+    "character": "七",
+    "pinyin": "qī",
+    "english": "seven"
+  },
+  {
+    "id": "Pre-unit-9-1",
+    "character": "八",
+    "pinyin": "bā",
+    "english": "eight"
+  },
+  {
+    "id": "Pre-unit-10-1",
+    "character": "九",
+    "pinyin": "jiǔ",
+    "english": "nine"
+  },
+  {
+    "id": "Pre-unit-11-1",
+    "character": "十",
+    "pinyin": "shí",
+    "english": "ten"
+  },
+  {
+    "id": "Pre-unit-2-4",
+    "character": "人",
+    "pinyin": "rén",
+    "english": "person"
+  },
+  {
+    "id": "Pre-unit-3-4",
+    "character": "大",
+    "pinyin": "dà",
+    "english": "big"
+  },
+  {
+    "id": "Pre-unit-4-4",
+    "character": "小",
+    "pinyin": "xiǎo",
+    "english": "small"
+  },
+  {
+    "id": "Pre-unit-5-4",
+    "character": "口",
+    "pinyin": "kǒu",
+    "english": "mouth"
+  },
+  {
+    "id": "Pre-unit-6-4",
+    "character": "中",
+    "pinyin": "zhōng",
+    "english": "medium;middle [Unit9]"
+  },
+  {
+    "id": "Pre-unit-7-4",
+    "character": "上",
+    "pinyin": "shàng",
+    "english": "above"
+  },
+  {
+    "id": "Pre-unit-8-4",
+    "character": "下",
+    "pinyin": "xià",
+    "english": "below;next [Unit6]"
+  },
+  {
+    "id": "Pre-unit-9-4",
+    "character": "天",
+    "pinyin": "tiān",
+    "english": "day [Unit 3]"
+  },
+  {
+    "id": "Pre-unit-10-4",
+    "character": "日",
+    "pinyin": "rì",
+    "english": "sun"
+  },
+  {
+    "id": "Pre-unit-11-4",
+    "character": "月",
+    "pinyin": "yuè",
+    "english": "moon"
+  },
+  {
+    "id": "Pre-unit-12-4",
+    "character": "男",
+    "pinyin": "nán",
+    "english": "male [Unit 2]"
+  },
+  {
+    "id": "Pre-unit-13-4",
+    "character": "女 ",
+    "pinyin": "nǚ",
+    "english": "female [Unit 2]"
+  }
+]
