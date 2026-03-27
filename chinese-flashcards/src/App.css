@@ -145,6 +145,42 @@ body {
   box-shadow: 0 4px 28px var(--accent-glow);
 }
 
+/* ── Top Nav ────────────────────────────────────────── */
+.top-nav {
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+  margin-bottom: 40px;
+}
+
+.top-nav .practice-btn,
+.top-nav .reusage-btn {
+  margin: 0;
+  display: inline-flex;
+}
+
+.reusage-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 28px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 50px;
+  color: var(--text-primary);
+  font-size: 0.95rem;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.reusage-btn:hover {
+  background: var(--bg-card-hover);
+  border-color: var(--accent);
+  transform: translateY(-2px);
+}
+
 /* ── Stats bar ──────────────────────────────────────────────── */
 .stats-bar {
   display: flex;
@@ -210,6 +246,48 @@ body {
   color: var(--text-muted);
   font-size: 0.78rem;
   font-weight: 400;
+}
+
+/* ── Character Reusage Grid ─────────────────────────────────── */
+.char-reusage-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 20px;
+  padding: 10px 0 40px;
+}
+
+.reusage-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 24px 16px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.reusage-card:hover {
+  background: var(--bg-card-hover);
+  border-color: var(--accent);
+  transform: translateY(-4px);
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
+}
+
+.reusage-char {
+  font-size: 3rem;
+  color: var(--text-primary);
+  margin-bottom: 8px;
+  line-height: 1;
+}
+
+.reusage-count {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  font-weight: 500;
+  background: var(--accent-dim);
+  padding: 2px 10px;
+  border-radius: 12px;
+  display: inline-block;
 }
 
 /* ── Cards grid ─────────────────────────────────────────────── */

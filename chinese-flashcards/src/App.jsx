@@ -9,12 +9,16 @@ const API_SECRET = 'cfe3bd189aa401d2f18c6bf9ce3acce4';
 
 function App() {
   const [chapters, setChapters] = useState({});
+  const [chapterOrder, setChapterOrder] = useState([]);
   const [selectedChapter, setSelectedChapter] = useState(null);
   const [flippedCards, setFlippedCards] = useState({});
   const [practiceMode, setPracticeMode] = useState(false);
   const [mixedCards, setMixedCards] = useState([]);
   const [audioCache, setAudioCache] = useState({});
   const [playingId, setPlayingId] = useState(null);
+  const [charReusage, setCharReusage] = useState({});
+  const [selectedChar, setSelectedChar] = useState(null);
+  const [showReusage, setShowReusage] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -33,11 +37,43 @@ function App() {
         const characters = await charResponse.json();
         chapterDataMap[chapter.name] = characters;
       }));
-      
+
+      // Preserve the original order from chapters.json
+      setChapterOrder(index.map(ch => ch.name));
       setChapters(chapterDataMap);
+      
+      // Compute character reusage
+      computeReusage(chapterDataMap);
     } catch (error) {
       console.error('Error loading JSON data:', error);
     }
+  };
+
+  const computeReusage = (dataMap) => {
+    const usageMap = {};
+    Object.values(dataMap).flat().forEach(wordObj => {
+      const chars = wordObj.character.split('');
+      chars.forEach(char => {
+        // Only count actual Chinese characters (rough filter)
+        if (/[\u4e00-\u9fa5]/.test(char)) {
+          if (!usageMap[char]) usageMap[char] = [];
+          // Avoid duplicates if a character appears twice in the same word entry (unlikely but safe)
+          if (!usageMap[char].find(w => w.id === wordObj.id)) {
+            usageMap[char].push(wordObj);
+          }
+        }
+      });
+    });
+
+    // Filter to only those reused (at least 2 words)
+    const filteredUsage = {};
+    Object.keys(usageMap).forEach(char => {
+      if (usageMap[char].length > 1) {
+        filteredUsage[char] = usageMap[char];
+      }
+    });
+
+    setCharReusage(filteredUsage);
   };
 
   const handleCardFlip = (cardId) => {
@@ -58,6 +94,18 @@ function App() {
   const exitPracticeMode = () => {
     setPracticeMode(false);
     setMixedCards([]);
+    setFlippedCards({});
+  };
+
+  const startReusageMode = () => {
+    setShowReusage(true);
+    setSelectedChar(null);
+    setFlippedCards({});
+  };
+
+  const exitReusageMode = () => {
+    setShowReusage(false);
+    setSelectedChar(null);
     setFlippedCards({});
   };
 
@@ -141,7 +189,7 @@ function App() {
 
   const cardsToDisplay = practiceMode ? mixedCards : (selectedChapter ? chapters[selectedChapter] : []);
 
-  if (!selectedChapter && !practiceMode) {
+  if (!selectedChapter && !practiceMode && !showReusage) {
     return (
       <div className="app">
         <header className="header">
@@ -152,12 +200,20 @@ function App() {
         </header>
         
         <main className="main-content">
-          <button className="practice-btn" onClick={startPracticeMode}>
-            Mixed Practice
-          </button>
+          <div className="top-nav">
+            <button className="practice-btn" onClick={startPracticeMode}>
+              Mixed Practice
+            </button>
+            <button className="reusage-btn" onClick={startReusageMode}>
+              Character Reusage
+            </button>
+          </div>
           
           <div className="chapter-grid">
-            {Object.entries(chapters).map(([chapterName, chars]) => (
+            {chapterOrder.map((chapterName) => {
+              const chars = chapters[chapterName];
+              if (!chars) return null;
+              return (
               <div 
                 key={chapterName} 
                 className="chapter-folder"
@@ -167,6 +223,38 @@ function App() {
                 <h3>{chapterName}</h3>
                 <p className="char-count">{chars.length} characters</p>
               </div>
+                          );
+            })}
+          </div>
+        </main>
+      </div>
+    );
+  }
+
+  if (showReusage && !selectedChar) {
+    return (
+      <div className="app">
+        <header className="header">
+          <button className="back-btn" onClick={exitReusageMode}>
+            ← Back
+          </button>
+          <div className="header-center">
+            <h1>Character Reusage</h1>
+            <p className="subtitle">Common characters found in multiple words</p>
+          </div>
+        </header>
+
+        <main className="main-content">
+          <div className="char-reusage-grid">
+            {Object.keys(charReusage).sort((a, b) => charReusage[b].length - charReusage[a].length).map(char => (
+              <div 
+                key={char} 
+                className="reusage-card"
+                onClick={() => setSelectedChar(char)}
+              >
+                <div className="reusage-char">{char}</div>
+                <div className="reusage-count">{charReusage[char].length} words</div>
+              </div>
             ))}
           </div>
         </main>
@@ -174,14 +262,28 @@ function App() {
     );
   }
 
+  const displayList = selectedChar ? charReusage[selectedChar] : cardsToDisplay;
+  const pageTitle = selectedChar ? `Words with "${selectedChar}"` : (practiceMode ? 'Mixed Practice' : selectedChapter);
+  const handleBack = () => {
+    if (selectedChar) {
+      setSelectedChar(null);
+    } else if (practiceMode) {
+      exitPracticeMode();
+    } else if (showReusage) {
+      exitReusageMode();
+    } else {
+      setSelectedChapter(null);
+    }
+  };
+
   return (
     <div className="app">
       <header className="header">
-        <button className="back-btn" onClick={practiceMode ? exitPracticeMode : () => setSelectedChapter(null)}>
+        <button className="back-btn" onClick={handleBack}>
           ← Back
         </button>
         <div className="header-center">
-          <h1>{practiceMode ? 'Mixed Practice' : selectedChapter}</h1>
+          <h1>{pageTitle}</h1>
         </div>
         <button className="reset-btn" onClick={resetCards}>
           Reset
@@ -189,14 +291,14 @@ function App() {
       </header>
       
       <div className="stats-bar">
-        <span>Total: {cardsToDisplay.length} cards</span>
+        <span>Total: {displayList.length} cards</span>
         <span>Flipped: {Object.values(flippedCards).filter(v => v).length}</span>
       </div>
       
       <main className="cards-container">
-        {cardsToDisplay.map((card) => (
+        {displayList.map((card) => (
           <div
-            key={card.id}
+            key={card.id + (selectedChar ? '-reusage' : '')}
             className={`flashcard ${flippedCards[card.id] ? 'flipped' : ''}`}
             onClick={() => handleCardFlip(card.id)}
           >
